@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedAI Assistant</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo">🧠 MedAI</div>
+        <div class="tag">Smart Health Assistant</div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+
+        <header class="topbar">
+            🩺 Medical AI Assistant
+        </header>
+
+        <!-- Chat -->
+        <div id="chat-messages" class="chat">
+            <div class="bubble bot">
+                👋 Hello! Describe your symptoms and I’ll assist you.
+            </div>
+        </div>
+
+        <!-- Input -->
+        <div class="input-wrapper">
+            <textarea id="symptoms-input" placeholder="Type your symptoms..."></textarea>
+            <button id="predict-btn">➤</button>
+        </div>
+
+    </main>
+
+</div>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+
+</body>
+</html>

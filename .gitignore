@@ -1,0 +1,67 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.py[cod]
+*.so
+*.csv
+# =========================
+# Virtual Environment
+# =========================
+venv/
+env/
+ENV/
+.venv/
+
+# =========================
+# Environment Variables (IMPORTANT)
+# =========================
+.env
+
+# =========================
+# VS Code / IDE
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# Model Files (Optional)
+# =========================
+# Uncomment if you DON'T want to upload trained models
+model/*.pkl
+model/*.json
+
+# =========================
+# Dataset Files (Optional)
+# =========================
+# Uncomment if dataset is large
+ data/*.csv
+# data/*.parquet
+
+# =========================
+# Node / Frontend (if added later)
+# =========================
+node_modules/
+
+# =========================
+# Build / Cache
+# =========================
+dist/
+build/
+.cache/

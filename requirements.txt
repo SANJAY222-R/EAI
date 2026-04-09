@@ -1,0 +1,6 @@
+Flask
+python-dotenv
+groq
+pandas
+numpy
+scikit-learn
