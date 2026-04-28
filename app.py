@@ -1,6 +1,7 @@
 import os
 import json
 import pickle
+import re
 import numpy as np
 import pandas as pd
 from flask import Flask, render_template, request, jsonify
@@ -57,14 +58,31 @@ def is_serious(disease):
 # =========================
 def get_symptom_vector(symptom_text):
     symptom_text = symptom_text.lower()
+    
+    stop_words = {
+        "i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", 
+        "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", "hers", 
+        "herself", "it", "its", "itself", "they", "them", "their", "theirs", "themselves", 
+        "what", "which", "who", "whom", "this", "that", "these", "those", "am", "is", "are", 
+        "was", "were", "be", "been", "being", "have", "has", "had", "having", "do", "does", 
+        "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", "until", 
+        "while", "of", "at", "by", "for", "with", "about", "against", "between", "into", 
+        "through", "during", "before", "after", "above", "below", "to", "from", "up", "down", 
+        "in", "out", "on", "off", "over", "under", "again", "further", "then", "once", "here", 
+        "there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more", 
+        "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", 
+        "than", "too", "very", "s", "t", "can", "will", "just", "don", "should", "now",
+        "hello", "hi", "hey", "good", "morning", "afternoon", "evening", "night", "bro", "whats", "what's"
+    }
 
     vector = [0] * len(columns)
     match_count = 0
 
     for i, col in enumerate(columns):
         col_clean = col.replace("_", " ")
-
-        if any(word in symptom_text for word in col_clean.split()):
+        words = [w for w in col_clean.split() if w not in stop_words]
+        
+        if any(re.search(rf"\b{re.escape(word)}\b", symptom_text) for word in words):
             vector[i] = 1
             match_count += 1
 
@@ -234,6 +252,56 @@ def predict(current_user):
         # 1️⃣ ML LAYER
         # =========================
         features, match_count = get_symptom_vector(symptoms)
+
+        if match_count == 0:
+            prompt = f"The user said: '{symptoms}'. You are MedAI, a strict and professional medical AI assistant. Reply pleasantly but firmly that you are only here to analyze medical symptoms and answer health-related queries. Ask them to describe their symptoms. Do NOT diagnose. Keep it under 40 words."
+            try:
+                res = client.chat.completions.create(
+                    model="llama-3.1-8b-instant",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.6
+                )
+                explanation = res.choices[0].message.content.strip()
+            except Exception:
+                explanation = "Hello! Please describe your symptoms."
+                
+            try:
+                if not session_id:
+                    title_words = symptoms.split()[:5]
+                    title = " ".join(title_words)
+                    if len(symptoms.split()) > 5:
+                        title += "..."
+                    chat = {
+                        "user_id": str(current_user["_id"]),
+                        "session_name": title,
+                        "messages": [],
+                        "created_at": datetime.datetime.utcnow()
+                    }
+                    result = chat_sessions_collection.insert_one(chat)
+                    session_id = str(result.inserted_id)
+
+                new_messages = [
+                    {"role": "user", "content": symptoms},
+                    {
+                        "role": "model", 
+                        "content": explanation,
+                        "type": "conversational"
+                    }
+                ]
+                chat_sessions_collection.update_one(
+                    {"_id": ObjectId(session_id)},
+                    {"$push": {"messages": {"$each": new_messages}}}
+                )
+            except Exception as e:
+                print("Error saving to db:", e)
+
+            return jsonify({
+                "success": True,
+                "type": "conversational",
+                "response": explanation,
+                "session_id": str(session_id) if session_id else None
+            })
+
         df_input = pd.DataFrame([features], columns=columns)
 
         probs = model.predict_proba(df_input)[0]
@@ -312,9 +380,25 @@ def predict(current_user):
 
         symptom_text_lower = symptoms.lower()
         matched_keywords = []
+        stop_words = {
+            "i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", 
+            "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", "hers", 
+            "herself", "it", "its", "itself", "they", "them", "their", "theirs", "themselves", 
+            "what", "which", "who", "whom", "this", "that", "these", "those", "am", "is", "are", 
+            "was", "were", "be", "been", "being", "have", "has", "had", "having", "do", "does", 
+            "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", "until", 
+            "while", "of", "at", "by", "for", "with", "about", "against", "between", "into", 
+            "through", "during", "before", "after", "above", "below", "to", "from", "up", "down", 
+            "in", "out", "on", "off", "over", "under", "again", "further", "then", "once", "here", 
+            "there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more", 
+            "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", 
+            "than", "too", "very", "s", "t", "can", "will", "just", "don", "should", "now",
+            "hello", "hi", "hey", "good", "morning", "afternoon", "evening", "night", "bro", "whats", "what's"
+        }
         for col in columns:
             col_clean = col.replace("_", " ")
-            if any(word in symptom_text_lower for word in col_clean.split()):
+            words = [w for w in col_clean.split() if w not in stop_words]
+            if any(re.search(rf"\b{re.escape(word)}\b", symptom_text_lower) for word in words):
                 matched_keywords.append(col_clean)
 
         try:
@@ -339,7 +423,8 @@ def predict(current_user):
                     "content": explanation,
                     "status": status,
                     "predictions": display_predictions,
-                    "matched_keywords": matched_keywords
+                    "matched_keywords": matched_keywords,
+                    "type": "medical"
                 }
             ]
             chat_sessions_collection.update_one(
@@ -351,6 +436,7 @@ def predict(current_user):
 
         return jsonify({
             "success": True,
+            "type": "medical",
             "status": status,
             "top_predictions": display_predictions,
             "response": explanation,

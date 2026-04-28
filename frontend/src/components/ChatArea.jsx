@@ -39,7 +39,8 @@ const ChatArea = ({ token, currentSessionId, setCurrentSessionId, messages, setM
             content: data.response,
             status: data.status,
             predictions: data.top_predictions,
-            matched_keywords: data.matched_keywords
+            matched_keywords: data.matched_keywords,
+            type: data.type
           };
           setMessages(prev => [...prev, aiMessage]);
           if (!currentSessionId && data.session_id) { 
@@ -91,12 +92,12 @@ const ChatArea = ({ token, currentSessionId, setCurrentSessionId, messages, setM
                   {msg.role === 'user' ? <User size={20} /> : <Bot size={20} />}
                 </div>
                 <div className="message-content">
-                  {msg.role === 'model' && msg.status && (
+                  {msg.role === 'model' && msg.type !== 'conversational' && msg.status && (
                     <div className={`ai-status status-${msg.status}`}>
                       {msg.status} Priority
                     </div>
                   )}
-                  {msg.role === 'model' && msg.predictions && (
+                  {msg.role === 'model' && msg.type !== 'conversational' && msg.predictions && (
                     <div style={{ marginBottom: '1rem' }}>
                       {msg.predictions.map((p, i) => (
                         <span key={i} className="prediction-pill">
@@ -105,7 +106,7 @@ const ChatArea = ({ token, currentSessionId, setCurrentSessionId, messages, setM
                       ))}
                     </div>
                   )}
-                  {msg.role === 'model' && msg.matched_keywords && msg.matched_keywords.length > 0 && (
+                  {msg.role === 'model' && msg.type !== 'conversational' && msg.matched_keywords && msg.matched_keywords.length > 0 && (
                     <div style={{ marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                       <strong>Detected Keywords:</strong> {msg.matched_keywords.join(", ")}
                     </div>
